@@ -1,3 +1,47 @@
+dachinat.nextcloud fork
+=======================
+
+This fork uses `10.2.10-MariaDB` stable
+
+* `nextcloud_ssl_autogen: false`  
+Support not to generate SSL certificate files. Useful when setting own files are necessary.
+
+* `mysql_disable_binary_logging: false`  
+Option to disable bin-log or not. Useful for replication.
+
+* `nextcloud_cron_interval: 10`  
+Option to set custom cron execution interval.
+
+* `mysql_use_emoji: true`  
+Makes database "emoji-ready" (UTF8 4-byte support, barracuda)
+
+* `mysql_transaction_level: READ-COMMITTED`  
+Sets MySQL transaction level. Empty value sets level to default.
+
+* `mysql_replication: true`  
+Sets `log-bin`, `server_id`, `replicate-do-db`, and `bind-address` in MySQL config file.
+
+* `nextcloud_mail_update_cfg: true`  
+Updates mail configuration with following options:
+
+```
+nextcloud_mail_smtpmode: smtp
+nextcloud_mail_smtpauthtype: LOGIN
+nextcloud_mail_from_address: your-address
+nextcloud_mail_domain: your-domain
+nextcloud_mail_smtphost: smtp.your-smtp.org
+nextcloud_mail_smtpport: 465
+nextcloud_mail_smtpauth: 1
+nextcloud_mail_smtpname: your-name@your-domain.com
+nextcloud_mail_smtppassword: your-password
+nextcloud_mail_smtpsecure: ssl
+```
+
+* Updates `datadirectory` on deployment.
+
+* Sets `skeletondirectory` to empty value.
+
+
 rbicker.nextcloud
 =================
 

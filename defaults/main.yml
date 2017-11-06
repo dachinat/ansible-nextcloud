@@ -2,11 +2,15 @@
 # defaults file for rbicker.nextcloud
 
 mysql_root_pw: secret
+mysql_disable_binary_logging: true # dachinat fork
+mysql_use_emoji: false # dachinat fork (Makes db emoji ready if set to true)
+mysql_transaction_level: "" # dachinat fork (Non empty values sets transaction level, defaults otherwise)
 nextcloud_repo_url: https://download.nextcloud.com/server/releases
 nextcloud_version: 12.0.2
 nextcloud_use_https: true
 nextcloud_domain: nextcloud.mydomain.com
 nextcloud_trusted_domains: ['localhost', '{{ nextcloud_domain }}']
+nextcloud_ssl_autogen: true # dachinat fork (Create or not certificate files)
 nextcloud_ssl_cert: /etc/nginx/nextcloud.crt
 nextcloud_ssl_key: /etc/nginx/nextcloud.key
 nextcloud_ssl_subject: '/C=CH/ST=Lucerne/L=Lucerne/O=/CN={{ nextcloud_domain }}'
@@ -19,3 +23,18 @@ nextcloud_mysql_user: nextcloud
 nextcloud_mysql_pw: nextcloud
 nextcloud_max_upload_size: 16G
 nextcloud_max_upload_time: 3600
+nextcloud_cron_interval: 15 # dachinat fork (Ability to set cron interval)
+# dachinat fork
+nextcloud_mail_update_cfg: false
+nextcloud_mail_smtpmode: ""
+nextcloud_mail_smtpauthtype: ""
+nextcloud_mail_from_address: ""
+nextcloud_mail_domain: ""
+nextcloud_mail_smtphost: ""
+nextcloud_mail_smtpport: ""
+nextcloud_mail_smtpauth: ""
+nextcloud_mail_smtpname: ""
+nextcloud_mail_smtppassword: ""
+nextcloud_mail_smtpsecure: ""
+
+mysql_replication: false

@@ -9,6 +9,16 @@
     - epel-release
     - https://mirror.webtatic.com/yum/el7/webtatic-release.rpm
 
+# dachinat fork
+- name: Add official MariaDB repository
+  yum_repository:
+    name: MariaDB
+    description: Official MariaDB repository
+    baseurl: http://yum.mariadb.org/10.2/centos7-amd64
+    gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+    gpgcheck: yes
+  tags: mariadb
+
 - name: ensure required packages are installed
   yum:
     name: '{{ item }}'
@@ -17,7 +27,8 @@
     - lbzip2-utils
     - nginx
     - openssl
-    - mariadb-server
+    - MariaDB-server # dachinat fork
+    - MariaDB-client # dachinat fork
     - MySQL-python
     - redis
     - php71w-fpm
@@ -45,6 +56,30 @@
     regexp: '^log-bin$' 
   notify:
     - restart mariadb
+  when: mysql_disable_binary_logging # dachinat fork
+
+# dachinat fork Sets (sets transaction level)
+- name: ensure transaction level is set
+  ini_file:
+    path: /etc/my.cnf.d/server.cnf
+    section: mysqld
+    option: transaction-isolation
+    value: "{{ mysql_transaction_level }}"
+  notify:
+    - restart mariadb
+  when: mysql_transaction_level != ""
+
+# dachinat fork (unsets transaction level)
+- name: remove transaction level if set so
+  ini_file:
+    path: /etc/my.cnf.d/server.cnf
+    section: mysqld
+    option: transaction-isolation
+    value: "{{ mysql_transaction_level }}"
+    state: absent
+  notify:
+    - restart mariadb
+  when: mysql_transaction_level == ""
 
 - name: ensure mariadb-server is enabled and started
   service:
@@ -150,7 +185,7 @@
   command: 'openssl req -new -nodes -x509 -subj {{ nextcloud_ssl_subject }} -days 3650 -keyout {{ nextcloud_ssl_key }} -out {{nextcloud_ssl_cert }} -extensions v3_ca creates={{ nextcloud_ssl_cert }}'
   notify: 
     - reload nginx
-  when: nextcloud_use_https
+  when: (nextcloud_use_https and nextcloud_ssl_autogen)
 
 - name: ensure php-fpm www.conf is present
   copy:
@@ -183,6 +218,44 @@
     - nginx
     - redis
 
+# dachinat fork (enables emoji (UTF8 4-byte) support)
+- name: configure mysql config for using emoji
+  ini_file:
+    dest: /etc/my.cnf.d/server.cnf
+    section: mysqld
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { option: innodb_large_prefix, value: "true" }
+    - { option: innodb_file_format, value: "barracuda "}
+    - { option: innodb_file_per_table, value: "1" }
+  notify:
+    - restart mariadb
+  when: mysql_use_emoji
+
+- name: set collation for emoji
+  command: "mysql --user=root --password={{ mysql_root_pw }} --execute=\"ALTER DATABASE {{ nextcloud_mysql_db }} CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\""
+  check_mode: no
+  changed_when: False
+  when: mysql_use_emoji
+# - END dachinat fork
+
+# dachinat fork (replication settings)
+- name: configure mysql for replication
+  ini_file:
+    dest: /etc/my.cnf.d/server.cnf
+    section: mysqld
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { option: log-bin, value: "" }
+    - { option: server_id, value: "1 "}
+    - { option: replicate-do-db, value: "{{ nextcloud_mysql_db }}" }
+    - { option: bind-address, value: "{{ inventory_hostname }}" }
+  notify:
+    - restart mariadb
+  when: mysql_replication
+
 #- name: ensure working dir is present
 #  file:
 #    path: '{{ nextcloud_working_dir }}'
@@ -202,6 +275,50 @@
 - include: 'installation.yml'
   when: new_installation.changed
 
+# dachinat fork (set skeletondirectory to empty value)
+- name: performance tuning - js and css asset management
+  command: 'php {{ nextcloud_web_root }}/occ config:system:set skeletondirectory --value ""'
+  become: true
+  become_user: nginx
+
+# dachinat fork (updates smtp settings in config.php)
+- name: configure smtp settings for nextcloud
+  command: "{{item}}"
+  with_items:
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtpmode --value="{{ nextcloud_mail_smtpmode }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtpauthtype --value="{{ nextcloud_mail_smtpauthtype }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_from_address --value="{{ nextcloud_mail_from_address }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_domain --value="{{ nextcloud_mail_domain }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtphost --value="{{ nextcloud_mail_smtphost  }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtpport --value="{{ nextcloud_mail_smtpport }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtpauth --value="{{ nextcloud_mail_smtpauth }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtpname --value="{{ nextcloud_mail_smtpname }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtppassword --value="{{ nextcloud_mail_smtppassword }}"'
+    - 'php {{ nextcloud_web_root }}/occ config:system:set mail_smtpsecure --value="{{ nextcloud_mail_smtpsecure }}"'
+  become: true
+  become_user: nginx
+  when: nextcloud_mail_update_cfg
+
+# dachinat fork (set storage directory)
+- name: set data directory in nextcloud config
+  command: 'php {{ nextcloud_web_root }}/occ config:system:set datadirectory --value="{{ nextcloud_data_root }}"'
+  become: true
+  become_user: nginx
+
+# dachinat fork (enables emoji (UTF8 4-byte) support)
+- name: set the mysql.utf8mb4 config to true in your config.php
+  command: 'php {{ nextcloud_web_root }}/occ config:system:set mysql.utf8mb4 --type boolean --value="true"'
+  become: true
+  become_user: nginx
+  when: mysql_use_emoji
+
+- name: convert all existing tables to the new collation by running the repair step
+  command: 'php {{ nextcloud_web_root }}/occ maintenance:repair'
+  become: true
+  become_user: nginx
+  when: mysql_use_emoji
+# - END dachinat fork
+
 - name: ensure .user.ini config is present
   template:
     src: user.ini.j2
@@ -210,10 +327,11 @@
     - reload nginx
     - reload php-fpm
 
-- name: performance tuning - ensure the nextcloud cronjob exists and runs every 15 min         
+# dachinat fork (uses declared variable as an interval)
+- name: performance tuning - ensure the nextcloud cronjob exists and runs every min set
   cron:               
     name: nextcloud           
-    minute: 15                
+    minute: "{{ nextcloud_cron_interval }}"
     user: nginx               
     job: 'php -f /var/www/nextcloud/cron.php'
 

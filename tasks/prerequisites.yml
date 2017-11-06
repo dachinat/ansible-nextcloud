@@ -144,7 +144,7 @@
   command: 'openssl req -new -nodes -x509 -subj {{ nextcloud_ssl_subject }} -days 3650 -keyout {{ nextcloud_ssl_key }} -out {{nextcloud_ssl_cert }} -extensions v3_ca creates={{ nextcloud_ssl_cert }}'
   notify: 
     - reload nginx
-  when: nextcloud_use_https
+  when: (nextcloud_use_https and nextcloud_ssl_autogen)
 
 - name: ensure php-fpm www.conf is present
   copy:
