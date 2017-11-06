@@ -41,6 +41,8 @@ nextcloud_mail_smtpsecure: ssl
 
 * Sets `skeletondirectory` to empty value.
 
+* `nextcloud_enable_previews: false`  
+Enables / disables (as in hardening guidance) previews
 
 rbicker.nextcloud
 =================

@@ -24,6 +24,7 @@ nextcloud_mysql_pw: nextcloud
 nextcloud_max_upload_size: 16G
 nextcloud_max_upload_time: 3600
 nextcloud_cron_interval: 15 # dachinat fork (Ability to set cron interval)
+nextcloud_enable_previews: true # dachinat fork (Enables / disables previews)
 # dachinat fork
 nextcloud_mail_update_cfg: false
 nextcloud_mail_smtpmode: ""

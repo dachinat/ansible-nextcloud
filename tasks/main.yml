@@ -256,6 +256,12 @@
     - restart mariadb
   when: mysql_replication
 
+# dachinat fork (enables / disables previews)
+- name: enable previews
+  command: 'php {{ nextcloud_web_root }}/occ config:system:set enable_previews --type boolean --value "{{ nextcloud_enable_previews }}"'
+  become: true
+  become_user: nginx
+
 #- name: ensure working dir is present
 #  file:
 #    path: '{{ nextcloud_working_dir }}'
