@@ -35,15 +35,15 @@
     - php71w-opcache
     - php71w-common # ctype, iconv, json, libxml, simplexml, zip, zlib, curl, fileinfo, bz2, openssl, ftp, exif, gmp
     - php71w-xml
-    - php71w-gd 
+    - php71w-gd
     - php71w-xml # dom, xmlreader, xmlwriter
-    - php71w-mbstring 
+    - php71w-mbstring
     - php71w-intl # intl
     - php71w-mcrypt
     - php71w-mysql
     - php71w-ldap
     - php71w-imap
-    - php71w-pecl-apcu 
+    - php71w-pecl-apcu
     - php71w-pecl-redis
     - php71w-pecl-imagick
     - php71w-process # posix
@@ -53,7 +53,7 @@
   lineinfile:
     path: /etc/my.cnf.d/server.cnf
     state: absent
-    regexp: '^log-bin$' 
+    regexp: '^log-bin$'
   notify:
     - restart mariadb
   when: mysql_disable_binary_logging # dachinat fork
@@ -132,7 +132,7 @@
   lineinfile:
     path: /etc/php.ini
     regexp: '^{{ item.option }}'
-    line: '{{ item.option }} = {{ item.value }}'    
+    line: '{{ item.option }} = {{ item.value }}'
   with_items:
     - { option: 'expose_php', value: 'Off' }
     #- { option: 'upload_max_filesize', value: '{{ nextcloud_max_upload_size }}' }
@@ -142,7 +142,7 @@
   notify:
     - reload php-fpm
     - reload nginx
-    
+
 - name: ensure pdo_mysql.ini config is present
   copy:
     src: pdo_mysql.ini
@@ -178,12 +178,12 @@
   template:
     src: nginx.conf.j2
     dest: /etc/nginx/conf.d/nextcloud.conf
-  notify: 
+  notify:
     - reload nginx
 
 - name: ensure ssl key and cert are present
   command: 'openssl req -new -nodes -x509 -subj {{ nextcloud_ssl_subject }} -days 3650 -keyout {{ nextcloud_ssl_key }} -out {{nextcloud_ssl_cert }} -extensions v3_ca creates={{ nextcloud_ssl_cert }}'
-  notify: 
+  notify:
     - reload nginx
   when: (nextcloud_use_https and nextcloud_ssl_autogen)
 
@@ -256,12 +256,6 @@
     - restart mariadb
   when: mysql_replication
 
-# dachinat fork (enables / disables previews)
-- name: enable previews
-  command: 'php {{ nextcloud_web_root }}/occ config:system:set enable_previews --type boolean --value "{{ nextcloud_enable_previews }}"'
-  become: true
-  become_user: nginx
-
 #- name: ensure working dir is present
 #  file:
 #    path: '{{ nextcloud_working_dir }}'
@@ -284,6 +278,12 @@
 # dachinat fork (set skeletondirectory to empty value)
 - name: performance tuning - js and css asset management
   command: 'php {{ nextcloud_web_root }}/occ config:system:set skeletondirectory --value ""'
+  become: true
+  become_user: nginx
+
+# dachinat fork (enables / disables previews)
+- name: enable previews
+  command: 'php {{ nextcloud_web_root }}/occ config:system:set enable_previews --type boolean --value "{{ nextcloud_enable_previews }}"'
   become: true
   become_user: nginx
 
@@ -335,10 +335,10 @@
 
 # dachinat fork (uses declared variable as an interval)
 - name: performance tuning - ensure the nextcloud cronjob exists and runs every min set
-  cron:               
-    name: nextcloud           
+  cron:
+    name: nextcloud
     minute: "{{ nextcloud_cron_interval }}"
-    user: nginx               
+    user: nginx
     job: 'php -f /var/www/nextcloud/cron.php'
 
 - include: 'permissions.yml'
