@@ -6,7 +6,7 @@ mysql_disable_binary_logging: true # dachinat fork
 mysql_use_emoji: false # dachinat fork (Makes db emoji ready if set to true)
 mysql_transaction_level: "" # dachinat fork (Non empty values sets transaction level, defaults otherwise)
 nextcloud_repo_url: https://download.nextcloud.com/server/releases
-nextcloud_version: 12.0.2
+nextcloud_version: 12.0.4
 nextcloud_use_https: true
 nextcloud_domain: nextcloud.mydomain.com
 nextcloud_trusted_domains: ['localhost', '{{ nextcloud_domain }}']
@@ -23,6 +23,10 @@ nextcloud_mysql_user: nextcloud
 nextcloud_mysql_pw: nextcloud
 nextcloud_max_upload_size: 16G
 nextcloud_max_upload_time: 3600
+
+nextcloud_upload_tmp_dir: /nextcloud/tmp
+nextcloud_upgrade: false
+
 nextcloud_cron_interval: 15 # dachinat fork (Ability to set cron interval)
 nextcloud_enable_previews: true # dachinat fork (Enables / disables previews)
 # dachinat fork

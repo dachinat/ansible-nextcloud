@@ -23,6 +23,8 @@
   yum:
     name: '{{ item }}'
   with_items:
+    - crontabs
+    - libselinux-python
     - policycoreutils-python
     - lbzip2-utils
     - nginx
@@ -139,6 +141,7 @@
     #- { option: 'post_max_size', value: '{{ nextcloud_max_upload_size }}' }
     - { option: 'max_input_time', value: '{{ nextcloud_max_upload_time }}' }
     - { option: 'max_execution_time', value: '{{ nextcloud_max_upload_time }}' }
+    - { option: 'upload_tmp_dir', value: '{{ nextcloud_upload_tmp_dir }}' }
   notify:
     - reload php-fpm
     - reload nginx
@@ -148,12 +151,29 @@
     src: pdo_mysql.ini
     dest: /etc/php.d/pdo_mysql.ini
 
-#- name: ensure redis.conf is present
-#  copy:
-#    src: redis.conf
-#    dest: /etc/redis.conf
-#  notify:
-#    - restart redis
+- name: ensure redis options are set
+  lineinfile:
+    path: /etc/redis.conf
+    regexp: '^{{ item.option }}\s'
+    line: '{{ item.option }} {{ item.value }}'
+  with_items:
+    - { option: 'unixsocket', value: '/var/run/redis/redis.sock' }
+    - { option: 'unixsocketperm', value: '770' }
+  notify:
+    - restart redis
+
+- name: ensure nginx user is in group redis
+  user:
+    name: nginx
+    append: yes
+    groups: redis
+
+- name: ensure upload_tmp_dir directory is present
+  file:
+    path: '{{ nextcloud_upload_tmp_dir }}'
+    owner: nginx
+    group: nginx
+    state: directory
 
 - name: ensure directory for php sessions exists and has nginx as owner
   file:
@@ -187,16 +207,20 @@
     - reload nginx
   when: (nextcloud_use_https and nextcloud_ssl_autogen)
 
-- name: ensure php-fpm www.conf is present
-  copy:
-    src: www.conf
-    dest: /etc/php-fpm.d/www.conf
+- name: ensure php-fpm www.conf settings are correct
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: '^{{ item.name }}\s*='
+    line: '{{ item.name }} = {{ item.value }}'
+  with_items:
+    - { name: user, value: nginx }
+    - { name: group, value: nginx }
   notify: reload php-fpm
 
 - name: ensure opcache settings are correct
   lineinfile:
     path: /etc/php.d/opcache.ini
-    regexp: '^{{ item.name }}='
+    regexp: '^{{ item.name }}\s*='
     line: '{{ item.name }}={{ item.value }}'
   with_items:
     - { name: opcache.enable, value: 1 }
@@ -272,7 +296,7 @@
     state: directory
   register: new_installation
 
-- include: 'installation.yml'
+- import_tasks: 'installation.yml'
   when: new_installation.changed
 
 # dachinat fork (set skeletondirectory to empty value)
@@ -341,4 +365,7 @@
     user: nginx
     job: 'php -f /var/www/nextcloud/cron.php'
 
-- include: 'permissions.yml'
+- import_tasks: 'permissions.yml'
+
+- import_tasks: 'upgrade.yml'
+  when: nextcloud_upgrade
