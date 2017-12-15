@@ -335,6 +335,13 @@
   become: true
   become_user: nginx
 
+# dachinat fork (set tmp directory)
+- name: set tmp directory in nextcloud config
+  command: 'php {{ nextcloud_web_root }}/occ config:system:set tempdirectory --value="{{ nextcloud_upload_tmp_dir }}"'
+  become: true
+  become_user: nginx
+  when: nextcloud_upload_tmp_dir is defiend and nextcloud_upload_tmp_dir is not none
+
 # dachinat fork (enables emoji (UTF8 4-byte) support)
 - name: set the mysql.utf8mb4 config to true in your config.php
   command: 'php {{ nextcloud_web_root }}/occ config:system:set mysql.utf8mb4 --type boolean --value="true"'
